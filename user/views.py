@@ -20,11 +20,11 @@ from .utils import send_otp, otp_expire, check_otp, check_user
 from exceptions.exception import *
 from exceptions.error_codes import *
 
-@api_view(['GET'])
-def auth_me(request):
-    if request.user.is_authenticated:
-        return Response(data=UserSerializer(request.user).data, status=status.HTTP_200_OK)
-    return Response(status=status.HTTP_401_UNAUTHORIZED)
+# @api_view(['GET'])
+# def auth_me(request):
+#     if request.user.is_authenticated:
+#         return Response(data=UserSerializer(request.user).data, status=status.HTTP_200_OK)
+#     return Response(status=status.HTTP_401_UNAUTHORIZED)
 
 
 class UserViewSet(viewsets.ViewSet):
@@ -363,115 +363,115 @@ class OTPReset(viewsets.ViewSet):
         )
 
 
-class UserProfileViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(
-        responses={200: UserProfileSerializer},
-        operation_description="Foydalanuvchi profilini olish"
-    )
-    def retrieve(self, request):
-        user = request.user
-        serializer = UserProfileSerializer(user)
-        return Response(serializer.data)
-
-    @swagger_auto_schema(
-        request_body=UserProfileSerializer,
-        responses={200: openapi.Response('Profil muvaffaqiyatli yangilandi.', UserProfileSerializer)},
-        operation_description="Foydalanuvchi profilini yangilash"
-    )
-    def update(self, request, pk):
-        user = get_object_or_404(User, pk=pk)
-        serializer = UserProfileSerializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({'message': 'Profil muvaffaqiyatli yangilandi.', 'data': serializer.data},
-                        status=status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                'password': openapi.Schema(type=openapi.TYPE_STRING, description="Yangi parol")
-            }
-        ),
-        responses={200: openapi.Response('Parol muvaffaqiyatli yangilandi.')},
-        operation_description="Foydalanuvchi parolini yangilash"
-    )
-    def update_password(self, request, pk):
-        user = get_object_or_404(User, pk=pk)
-        new_password = request.data.get('password')
-
-        if new_password:
-            user.password = make_password(new_password)  # Parolni hashlash
-            user.save()
-            return Response({'message': 'Parol muvaffaqiyatli yangilandi.'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': 'Parol kiritilishi shart.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    @swagger_auto_schema(request_body=openapi.Schema(
-        type=openapi.TYPE_OBJECT,
-        properties={
-            'old_password': openapi.Schema(type=openapi.TYPE_STRING, description="Eski parol"),
-            'new_password': openapi.Schema(type=openapi.TYPE_STRING, description="Yangi parol"),
-        }
-    ))
-    def change_password(self, request):
-        user = request.user
-        old_password = request.data.get('old_password')
-        new_password = request.data.get('new_password')
-
-        if not user.check_password(old_password):
-            return Response({"error": "Eski parol noto'g'ri."}, status=status.HTTP_400_BAD_REQUEST)
-
-        user.password = make_password(new_password)
-        user.save()
-        return Response({"message": "Parol muvaffaqiyatli yangilandi."}, status=status.HTTP_200_OK)
-
-    @swagger_auto_schema(
-        operation_description="Foydalanuvchining yangi kartasini registratsiya qilish",
-        request_body=CardSerializer,
-        responses={
-            200: openapi.Response('Karta muvaffaqiyatli registratsiya qilindi.'),
-            400: openapi.Response('Karta registratsiya qilishda xato.')
-        }
-    )
-    def register_card(self, request):
-        # Karta ma'lumotlarini olish
-        serializer = CardSerializer(data=request.data)
-        if serializer.is_valid():
-            card_number = serializer.validated_data['card_number']
-            expiry_date = serializer.validated_data['expiry_date']
-            cvv = serializer.validated_data['cvv']
-
-            # Stripe tokenini yaratish
-            stripe_token = self.create_stripe_token(card_number, expiry_date, cvv)
-
-            # Karta registratsiya qilish uchun oldingi kodni qo'llang
-            if not stripe_token:
-                return Response({'message': 'Karta tokenini yaratishda xato.'}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Karta ma'lumotlarini registratsiya qilish
-            # (oldingi koddan foydalaning)
-
-            return Response({
-                'message': 'Karta muvaffaqiyatli registratsiya qilindi.'
-            }, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def create_stripe_token(self, card_number, expiry_date, cvv):
-        try:
-            exp_month, exp_year = map(int, expiry_date.split('/'))
-            token = stripe.Token.create(
-                card={
-                    'number': card_number,
-                    'exp_month': exp_month,
-                    'exp_year': exp_year,
-                    'cvc': cvv,
-                }
-            )
-            return token.id
-        except ValueError:
-            return None  # Agar split qilishda muammo bo'lsa
-        except stripe.error.StripeError:
-            return None  # Stripe bilan bog'liq xato
+# class UserProfileViewSet(viewsets.ViewSet):
+#     permission_classes = [IsAuthenticated]
+#     @swagger_auto_schema(
+#         responses={200: UserProfileSerializer},
+#         operation_description="Foydalanuvchi profilini olish"
+#     )
+#     def retrieve(self, request):
+#         user = request.user
+#         serializer = UserProfileSerializer(user)
+#         return Response(serializer.data)
+#
+#     @swagger_auto_schema(
+#         request_body=UserProfileSerializer,
+#         responses={200: openapi.Response('Profil muvaffaqiyatli yangilandi.', UserProfileSerializer)},
+#         operation_description="Foydalanuvchi profilini yangilash"
+#     )
+#     def update(self, request, pk):
+#         user = get_object_or_404(User, pk=pk)
+#         serializer = UserProfileSerializer(user, data=request.data, partial=True)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response({'message': 'Profil muvaffaqiyatli yangilandi.', 'data': serializer.data},
+#                         status=status.HTTP_200_OK)
+#
+#     @swagger_auto_schema(
+#         request_body=openapi.Schema(
+#             type=openapi.TYPE_OBJECT,
+#             properties={
+#                 'password': openapi.Schema(type=openapi.TYPE_STRING, description="Yangi parol")
+#             }
+#         ),
+#         responses={200: openapi.Response('Parol muvaffaqiyatli yangilandi.')},
+#         operation_description="Foydalanuvchi parolini yangilash"
+#     )
+#     def update_password(self, request, pk):
+#         user = get_object_or_404(User, pk=pk)
+#         new_password = request.data.get('password')
+#
+#         if new_password:
+#             user.password = make_password(new_password)  # Parolni hashlash
+#             user.save()
+#             return Response({'message': 'Parol muvaffaqiyatli yangilandi.'}, status=status.HTTP_200_OK)
+#         else:
+#             return Response({'error': 'Parol kiritilishi shart.'}, status=status.HTTP_400_BAD_REQUEST)
+#
+#     @swagger_auto_schema(request_body=openapi.Schema(
+#         type=openapi.TYPE_OBJECT,
+#         properties={
+#             'old_password': openapi.Schema(type=openapi.TYPE_STRING, description="Eski parol"),
+#             'new_password': openapi.Schema(type=openapi.TYPE_STRING, description="Yangi parol"),
+#         }
+#     ))
+#     def change_password(self, request):
+#         user = request.user
+#         old_password = request.data.get('old_password')
+#         new_password = request.data.get('new_password')
+#
+#         if not user.check_password(old_password):
+#             return Response({"error": "Eski parol noto'g'ri."}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         user.password = make_password(new_password)
+#         user.save()
+#         return Response({"message": "Parol muvaffaqiyatli yangilandi."}, status=status.HTTP_200_OK)
+#
+#     @swagger_auto_schema(
+#         operation_description="Foydalanuvchining yangi kartasini registratsiya qilish",
+#         request_body=CardSerializer,
+#         responses={
+#             200: openapi.Response('Karta muvaffaqiyatli registratsiya qilindi.'),
+#             400: openapi.Response('Karta registratsiya qilishda xato.')
+#         }
+#     )
+#     def register_card(self, request):
+#         # Karta ma'lumotlarini olish
+#         serializer = CardSerializer(data=request.data)
+#         if serializer.is_valid():
+#             card_number = serializer.validated_data['card_number']
+#             expiry_date = serializer.validated_data['expiry_date']
+#             cvv = serializer.validated_data['cvv']
+#
+#             # Stripe tokenini yaratish
+#             stripe_token = self.create_stripe_token(card_number, expiry_date, cvv)
+#
+#             # Karta registratsiya qilish uchun oldingi kodni qo'llang
+#             if not stripe_token:
+#                 return Response({'message': 'Karta tokenini yaratishda xato.'}, status=status.HTTP_400_BAD_REQUEST)
+#
+#             # Karta ma'lumotlarini registratsiya qilish
+#             # (oldingi koddan foydalaning)
+#
+#             return Response({
+#                 'message': 'Karta muvaffaqiyatli registratsiya qilindi.'
+#             }, status=status.HTTP_200_OK)
+#
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#
+#     def create_stripe_token(self, card_number, expiry_date, cvv):
+#         try:
+#             exp_month, exp_year = map(int, expiry_date.split('/'))
+#             token = stripe.Token.create(
+#                 card={
+#                     'number': card_number,
+#                     'exp_month': exp_month,
+#                     'exp_year': exp_year,
+#                     'cvc': cvv,
+#                 }
+#             )
+#             return token.id
+#         except ValueError:
+#             return None  # Agar split qilishda muammo bo'lsa
+#         except stripe.error.StripeError:
+#             return None  # Stripe bilan bog'liq xato

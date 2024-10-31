@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_yasg',
 
+
 ]
 
 REST_FRAMEWORK = {
@@ -112,6 +113,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',  # need to write into terminal 'python manage.py createcachetable'
+    }
+}
+
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -122,7 +131,9 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
+
+
 
 
 # Static files (CSS, JavaScript, Images)
