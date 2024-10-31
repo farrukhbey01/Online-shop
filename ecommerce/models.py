@@ -1,7 +1,6 @@
 from django.db import models
 from user.models import User
-import uuid
-from datetime import timedelta, datetime
+
 
 
 

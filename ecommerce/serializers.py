@@ -31,10 +31,9 @@ class ProductCreateSerializer(serializers.Serializer):
         category_id = validated_data['category_id']
         products_data = validated_data['products']
 
-        # Mahsulotlarni yaratishdan oldin category ni olamiz
+
         category = Category.objects.get(id=category_id)
 
-        # Mahsulotlarni bir vaqtning o'zida yaratish uchun
         products = [Product(category=category, **product_data) for product_data in products_data]
         return Product.objects.bulk_create(products)
 class ProductCartSerializer(serializers.ModelSerializer):
@@ -42,7 +41,7 @@ class ProductCartSerializer(serializers.ModelSerializer):
         model = Product
         fields = ['id', 'name', 'description', 'price']
 
-class BulkDestroySerializer(serializers.Serializer):
+class ProductDestroySerializer(serializers.Serializer):
     product_ids = serializers.ListField(
         child=serializers.IntegerField(),
         required=True

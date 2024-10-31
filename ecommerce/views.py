@@ -1,16 +1,12 @@
 from django.core.cache import cache
-from rest_framework import viewsets, status
-from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from django.db.models import Q
 from user.permissions import is_admin
 from . import serializers
 from .models import Product, Cart,CartItem,Payment
-from .serializers import  Category, CartSerializer, BulkDestroySerializer
+from .serializers import  Category, CartSerializer, ProductDestroySerializer
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from drf_yasg.utils import swagger_auto_schema
 from .serializers import ProductSerializer, ProductCreateSerializer,CartListSerializer,PaymentSerializer,CategorySerializer
 from .custom_pagination import CustomPagination
 from exceptions.error_codes import ErrorCodes
@@ -103,12 +99,12 @@ class ProductViewSet(viewsets.ViewSet):
 
 
     @swagger_auto_schema(
-        request_body=BulkDestroySerializer,
+        request_body=ProductDestroySerializer,
         responses={204: "No Content", 400: "Bad Request"},
         operation_description="Delete multiple products by their IDs within a specific category."
     )
     def destroy(self, request, category_id):
-        serializer = BulkDestroySerializer(data=request.data)
+        serializer = ProductDestroySerializer(data=request.data)
 
         if serializer.is_valid():
             product_ids = serializer.validated_data['product_ids']
@@ -130,14 +126,13 @@ class ProductViewSet(viewsets.ViewSet):
 
 class CartViewSet(viewsets.ViewSet):
 
-    pagination_class = CustomPagination  # CustomPagination sinfini belgilaymiz
+    pagination_class = CustomPagination
 
     @swagger_auto_schema(
         responses={200: CartListSerializer},
         operation_description="Retrieve the current user's cart."
     )
     def list(self, request):
-        # Foydalanuvchi identifikatori orqali cache kalitini aniqlash
         cache_key = f'cart_{request.user.id}'
 
 
@@ -161,13 +156,10 @@ class CartViewSet(viewsets.ViewSet):
         paginated_data = paginator.paginate_queryset(data_list, request)
 
 
-        # Keshga saqlash va natijani qaytarish
         cache.set(cache_key, paginated_data, timeout=60 * 15)
         return paginator.get_paginated_response(paginated_data)
 
-    from django.core.cache import cache
 
-    # ... (boshqa metodlar)
     @swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
@@ -202,26 +194,26 @@ class CartViewSet(viewsets.ViewSet):
             product_id = product_data.get("product_id")
             quantity = product_data.get("quantity", 1)
 
-            # Mahsulotni bazadan olish
+
             product = Product.objects.filter(id=product_id).first()
             if not product:
                 return Response({"detail": f"Product with ID {product_id} not found."},
                                 status=status.HTTP_404_NOT_FOUND)
 
-            # Agar mahsulot allaqachon savatda bo'lsa, miqdorini yangilash
+
             cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
             if not created:
-                # Agar cart_item mavjud bo'lsa, mavjud quantity ustiga yangisini qo'shish
+
                 cart_item.quantity += quantity
             else:
-                # Yangi qo'shilgan mahsulot uchun quantity ni belgilash
+
                 cart_item.quantity = quantity
 
-            # Umumiy narxni hisoblash
+
             cart_item.total_price = cart_item.quantity * product.price
             cart_item.save()
 
-        # Keshni yangilash
+
         cache_key = f'cart_{request.user.id}'
         cache.delete(cache_key)
 
@@ -249,22 +241,21 @@ class CartViewSet(viewsets.ViewSet):
         product_id = request.data.get("product_id")
         quantity = request.data.get("quantity", 1)
 
-        # Savatdagi mahsulotni topish
+
         cart_item = CartItem.objects.filter(cart=cart, product_id=product_id).first()
 
         if not cart_item:
             raise CustomApiException(ErrorCodes.NOT_FOUND.value,message="Product not in cart.")
-        # Agar quantity berilgan bo'lsa, miqdorini kamaytirish
+
         if quantity:
             cart_item.quantity -= quantity
             if cart_item.quantity <= 0:
-                cart_item.delete()  # Miqdor 0 yoki kam bo'lsa, mahsulotni o'chirish
+                cart_item.delete()
             else:
-                cart_item.save()  # Yangilangan miqdorni saqlash
+                cart_item.save()
         else:
-            cart_item.delete()  # Faqat product_id bo'lsa, to'liq o'chirish
+            cart_item.delete()
 
-        # Keshni yangilash
         cache_key = f'cart_{request.user.id}'
         cache.delete(cache_key)
 
@@ -287,7 +278,7 @@ class PaymentViewSet(viewsets.ViewSet):
                     required=['card_number', 'expiry_date', 'cvv'],
                 ),
             },
-            required=['amount', 'payment_method', 'card_details'],  # 'card_details' ham kerak
+            required=['amount', 'payment_method', 'card_details'],
         ),
         responses={
             200: PaymentSerializer,
@@ -301,32 +292,30 @@ class PaymentViewSet(viewsets.ViewSet):
         payment_method = request.data.get("payment_method")
         card_details = request.data.get("card_details")
 
-        # Validate payment method and amount
+
         if not amount or not payment_method or not card_details:
             return Response({"detail": "Amount, payment method, and card details are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get the user's cart
         cart = Cart.objects.filter(user=request.user).first()
         if not cart:
             return Response({"detail": "Cart not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Process the payment (here you would normally integrate with a payment gateway)
+
         payment = Payment.objects.create(
             user=request.user,
             amount=amount,
             payment_method=payment_method,
-            status='processed'  # You might want to change this depending on your payment gateway response
+            status='processed'
         )
 
-        # Optional: Clear the user's cart after successful payment
-        cart.cartitem_set.all().delete()  # Remove all items from cart after successful payment
 
-        # Cache key for payments (if necessary)
+        cart.cartitem_set.all().delete()
+
         cache_key = f'payment_{request.user.id}'
-        cache.set(cache_key, payment.id, timeout=60 * 15)  # Cache payment ID for 15 minutes
+        cache.set(cache_key, payment.id, timeout=60 * 15)
 
-        # Serialize the payment response
+
         serializer = PaymentSerializer(payment)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-# Create your views here.
+

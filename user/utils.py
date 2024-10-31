@@ -33,13 +33,12 @@ def check_otp(data):
         data.delete()
 
     if len(data) >= 3:
-        # raise BadRequestException('Too many attempts, Please try after 12 hours!')
-        raise CustomApiException(error_code=ErrorCodes.VALIDATION_FAILED.value, message='otp expired')
+        raise CustomApiException(error_code=ErrorCodes.VALIDATION_FAILED.value, message='Too many attempts, Please try after 12 hours!')
 
 def check_user(user):
     if user is None:
-        # raise BadRequestException("User not found!")
-        raise CustomApiException(error_code=ErrorCodes.VALIDATION_FAILED.value, message='otp expired')
+
+        raise CustomApiException(error_code=ErrorCodes.NOT_FOUND.value, message=' User Not Found')
     if not user.is_verified:
         # raise BadRequestException("User is not verified!")
         raise CustomApiException(error_code=ErrorCodes.VALIDATION_FAILED.value, message='otp expired')

@@ -116,7 +116,7 @@ AUTH_PASSWORD_VALIDATORS = [
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'cache_table',  # need to write into terminal 'python manage.py createcachetable'
+        'LOCATION': 'cache_table',
     }
 }
 
