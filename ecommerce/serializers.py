@@ -36,6 +36,7 @@ class ProductCreateSerializer(serializers.Serializer):
 
         products = [Product(category=category, **product_data) for product_data in products_data]
         return Product.objects.bulk_create(products)
+
 class ProductCartSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product

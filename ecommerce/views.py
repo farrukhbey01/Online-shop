@@ -103,6 +103,7 @@ class ProductViewSet(viewsets.ViewSet):
         responses={204: "No Content", 400: "Bad Request"},
         operation_description="Delete multiple products by their IDs within a specific category."
     )
+    @is_admin
     def destroy(self, request, category_id):
         serializer = ProductDestroySerializer(data=request.data)
 
